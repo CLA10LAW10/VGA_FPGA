@@ -5,6 +5,8 @@ use IEEE.std_logic_unsigned.all;
 entity vga_ctrl is
   port (
     CLK_I    : in std_logic;
+    btn      : in std_logic_vector (3 downto 0);
+    sw       : in std_logic_vector (3 downto 0);
     VGA_HS_O : out std_logic;
     VGA_VS_O : out std_logic;
     VGA_R    : out std_logic_vector (3 downto 0);
@@ -96,16 +98,249 @@ begin
     if active = '1'then
       case sw is
         when "0000" =>
-          --do something
-        when "0001" =>
-          --do something
-        when "0010" =>
-          --do something
-        when "0011" =>
-          --do something
+          --Monitor off
+          vga_red   <= (others => '0');
+          vga_green <= (others => '0');
+          vga_blue  <= (others => '0');
+        when "0001"          =>
+          --Show solid red
+          vga_red   <= (others => '1');
+          vga_green <= (others => '0');
+          vga_blue  <= (others => '0');
+        when "0010"          =>
+          --Show solid green
+          vga_red   <= (others => '0');
+          vga_green <= (others => '1');
+          vga_blue  <= (others => '0');
+        when "0011"          => -- Possibly 0100
+          --Divide the screen into 3 regions and show RGB
+          if (h_cntr_reg >= 0 and h_cntr_reg < 640) then
+            vga_red   <= (others => '1');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '0');
+          elsif (h_cntr_reg >= 640 and h_cntr_reg < 2 * 640) then
+            vga_red   <= (others => '0');
+            vga_green <= (others => '1');
+            vga_blue  <= (others => '0');
+          elsif (h_cntr_reg >= 2 * 640 and h_cntr_reg < 3 * 640) then
+            vga_red   <= (others => '0');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '1');
+          else
+            vga_red   <= (others => '0');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '0');
+          end if;
         when "0100" =>
-          --do something
-        when others
+          -- Divide Monitor to 8 regions and show white, yellow, cyan, green, magenta, red, blue, and black
+          if (h_cntr_reg >= 0 and h_cntr_reg < 240) then
+            -- white
+            vga_red   <= (others => '1');
+            vga_green <= (others => '1');
+            vga_blue  <= (others => '1');
+          elsif (h_cntr_reg >= 240 and h_cntr_reg < 2 * 240) then
+            -- yellow
+            vga_red   <= (others => '1');
+            vga_green <= (others => '1');
+            vga_blue  <= (others => '0');
+          elsif (h_cntr_reg >= 2 * 240 and h_cntr_reg < 3 * 240) then
+            -- cyan
+            vga_red   <= (others => '0');
+            vga_green <= (others => '1');
+            vga_blue  <= (others => '1');
+          elsif (h_cntr_reg >= 3 * 240 and h_cntr_reg < 4 * 240) then
+            -- green
+            vga_red   <= (others => '0');
+            vga_green <= (others => '1');
+            vga_blue  <= (others => '0');
+          elsif (h_cntr_reg >= 4 * 240 and h_cntr_reg < 5 * 240) then
+            -- magenta
+            vga_red   <= (others => '1');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '1');
+          elsif (h_cntr_reg >= 5 * 240 and h_cntr_reg < 6 * 240) then
+            -- red
+            vga_red   <= (others => '1');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '0');
+          elsif (h_cntr_reg >= 6 * 240 and h_cntr_reg < 7 * 240) then
+            -- blue
+            vga_red   <= (others => '0');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '1');
+          elsif (h_cntr_reg >= 7 * 240 and h_cntr_reg < 8 * 240) then
+            -- black
+            vga_red   <= (others => '0');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '0');
+          else
+            vga_red   <= (others => '0');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '0');
+          end if;
+        when "0101" =>
+          -- divide the monitor into 8 sections and show 8 shades of gray
+          if (h_cntr_reg >= 0 and h_cntr_reg < 240) then
+            -- white
+            vga_red   <= (others => '1');
+            vga_green <= (others => '1');
+            vga_blue  <= (others => '1');
+          elsif (h_cntr_reg >= 240 and h_cntr_reg < 2 * 240) then
+            vga_red   <= "1110";
+            vga_green <= "1110";
+            vga_blue  <= "1110";
+          elsif (h_cntr_reg >= 2 * 240 and h_cntr_reg < 3 * 240) then
+            vga_red   <= "1100";
+            vga_green <= "1100";
+            vga_blue  <= "1100";
+          elsif (h_cntr_reg >= 3 * 240 and h_cntr_reg < 4 * 240) then
+            vga_red   <= "1010";
+            vga_green <= "1010";
+            vga_blue  <= "1010";
+          elsif (h_cntr_reg >= 4 * 240 and h_cntr_reg < 5 * 240) then
+            vga_red   <= "1000";
+            vga_green <= "1000";
+            vga_blue  <= "1000";
+          elsif (h_cntr_reg >= 5 * 240 and h_cntr_reg < 6 * 240) then
+            vga_red   <= "0110";
+            vga_green <= "0110";
+            vga_blue  <= "0110";
+          elsif (h_cntr_reg >= 6 * 240 and h_cntr_reg < 7 * 240) then
+            vga_red   <= "0010";
+            vga_green <= "0010";
+            vga_blue  <= "0010";
+          elsif (h_cntr_reg >= 7 * 240 and h_cntr_reg < 8 * 240) then
+            -- black
+            vga_red   <= (others => '0');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '0');
+          else
+            vga_red   <= (others => '0');
+            vga_green <= (others => '0');
+            vga_blue  <= (others => '0');
+          end if;
+        when "1010" =>
+          case btn is
+            when "0000" =>
+              vga_red   <= h_cntr_reg(3 downto 0);
+              vga_green <= h_cntr_reg(3 downto 0);
+              vga_blue  <= h_cntr_reg(3 downto 0);
+            when "0001" =>
+              vga_red   <= h_cntr_reg(4 downto 1);
+              vga_green <= h_cntr_reg(4 downto 1);
+              vga_blue  <= h_cntr_reg(4 downto 1);
+            when "0010" =>
+              vga_red   <= h_cntr_reg(5 downto 2);
+              vga_green <= h_cntr_reg(5 downto 2);
+              vga_blue  <= h_cntr_reg(5 downto 2);
+            when "0100" =>
+              vga_red   <= h_cntr_reg(6 downto 3);
+              vga_green <= h_cntr_reg(6 downto 3);
+              vga_blue  <= h_cntr_reg(6 downto 3);
+            when "1000" =>
+              vga_red   <= h_cntr_reg(11 downto 8);
+              vga_green <= h_cntr_reg(11 downto 8);
+              vga_blue  <= h_cntr_reg(11 downto 8);
+            when others          =>
+              vga_red   <= (others => '0');
+              vga_green <= (others => '0');
+              vga_blue  <= (others => '0');
+          end case;
+        when "0111" =>
+          case btn is
+            when "0000" =>
+              vga_red   <= v_cntr_reg(3 downto 0);
+              vga_green <= v_cntr_reg(3 downto 0);
+              vga_blue  <= v_cntr_reg(3 downto 0);
+            when "0001" =>
+              vga_red   <= v_cntr_reg(4 downto 1);
+              vga_green <= v_cntr_reg(4 downto 1);
+              vga_blue  <= v_cntr_reg(4 downto 1);
+            when "0010" =>
+              vga_red   <= v_cntr_reg(5 downto 2);
+              vga_green <= v_cntr_reg(5 downto 2);
+              vga_blue  <= v_cntr_reg(5 downto 2);
+            when "0100" =>
+              vga_red   <= v_cntr_reg(6 downto 3);
+              vga_green <= v_cntr_reg(6 downto 3);
+              vga_blue  <= v_cntr_reg(6 downto 3);
+            when "1000" =>
+              vga_red   <= v_cntr_reg(11 downto 8);
+              vga_green <= v_cntr_reg(11 downto 8);
+              vga_blue  <= v_cntr_reg(11 downto 8);
+            when others          =>
+              vga_red   <= (others => '0');
+              vga_green <= (others => '0');
+              vga_blue  <= (others => '0');
+          end case;
+
+        when "1000" =>
+          -- create different size checker board pattern
+          case btn is
+            when "0000"          =>
+              vga_red   <= (others => (v_cntr_reg(5) xor h_cntr_reg(5)));
+              vga_green <= (others => (v_cntr_reg(5) xor h_cntr_reg(5)));
+              vga_blue  <= (others => (v_cntr_reg(5) xor h_cntr_reg(5)));
+            when "0001"          =>
+              vga_red   <= (others => (v_cntr_reg(6) xor h_cntr_reg(6)));
+              vga_green <= (others => (v_cntr_reg(6) xor h_cntr_reg(6)));
+              vga_blue  <= (others => (v_cntr_reg(6) xor h_cntr_reg(6)));
+            when "0010"          =>
+              vga_red   <= (others => (v_cntr_reg(7) xor h_cntr_reg(7)));
+              vga_green <= (others => (v_cntr_reg(7) xor h_cntr_reg(7)));
+              vga_blue  <= (others => (v_cntr_reg(7) xor h_cntr_reg(7)));
+            when "0100"          =>
+              vga_red   <= (others => (v_cntr_reg(8) xor h_cntr_reg(8)));
+              vga_green <= (others => (v_cntr_reg(8) xor h_cntr_reg(8)));
+              vga_blue  <= (others => (v_cntr_reg(8) xor h_cntr_reg(8)));
+            when "1000"          =>
+              vga_red   <= (others => (v_cntr_reg(9) xor h_cntr_reg(9)));
+              vga_green <= (others => (v_cntr_reg(9) xor h_cntr_reg(9)));
+              vga_blue  <= (others => (v_cntr_reg(9) xor h_cntr_reg(9)));
+            when others          =>
+              vga_red   <= (others => '0');
+              vga_green <= (others => '0');
+              vga_blue  <= (others => '0');
+          end case;
+        when "1001" =>
+          -- create checkerboard with inner repeat pattern
+          case btn is
+            when "0000" =>
+              vga_red   <= v_cntr_reg(6 downto 3) and h_cntr_reg(6 downto 3);
+              vga_green <= v_cntr_reg(6 downto 3) and h_cntr_reg(6 downto 3);
+              vga_blue  <= v_cntr_reg(6 downto 3) and h_cntr_reg(6 downto 3);
+            when "0001" =>
+              vga_red   <= v_cntr_reg(6 downto 3) or h_cntr_reg(6 downto 3);
+              vga_green <= v_cntr_reg(6 downto 3) or h_cntr_reg(6 downto 3);
+              vga_blue  <= v_cntr_reg(6 downto 3) or h_cntr_reg(6 downto 3);
+            when "0010" =>
+              vga_red   <= v_cntr_reg(6 downto 3) xor h_cntr_reg(6 downto 3);
+              vga_green <= v_cntr_reg(6 downto 3) xor h_cntr_reg(6 downto 3);
+              vga_blue  <= v_cntr_reg(6 downto 3) xor h_cntr_reg(6 downto 3);
+            when "0100" =>
+              vga_red   <= v_cntr_reg(7 downto 4) xor h_cntr_reg(7 downto 4);
+              vga_green <= v_cntr_reg(7 downto 4) xor h_cntr_reg(7 downto 4);
+              vga_blue  <= v_cntr_reg(7 downto 4) xor h_cntr_reg(7 downto 4);
+            when "1000" =>
+              vga_red   <= v_cntr_reg(8 downto 5) xor h_cntr_reg(8 downto 5);
+              vga_green <= v_cntr_reg(8 downto 5) xor h_cntr_reg(8 downto 5);
+              vga_blue  <= v_cntr_reg(8 downto 5) xor h_cntr_reg(8 downto 5);
+            when others          =>
+              vga_red   <= (others => '0');
+              vga_green <= (others => '0');
+              vga_blue  <= (others => '0');
+          end case;
+        when "1011" =>
+          -- show moving ball
+          if pixel_in_box = '1' then
+            vga_red <= (others => '1');
+          else
+            vga_red <= (others => '0');
+          end if;
+
+-- Left off on Slide 79
+
+        when others          =>
           vga_red   <= (others => '0');
           vga_green <= (others => '0');
           vga_blue  <= (others => '0');
