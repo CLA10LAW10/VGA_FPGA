@@ -42,14 +42,17 @@ architecture Behavioral of vga_ctrl is
   constant V_POL : std_logic := '1';
 
   --Moving Box constants
-  constant BOX_WIDTH   : natural := 8;
+
+  --Moving Box constants
+  constant BOX_WIDTH   : natural := 20;
+  constant IMAGE_WIDTH : natural := 28;
   constant BOX_CLK_DIV : natural := 1000000; --MAX=(2^25 - 1)
 
-  constant BOX_X_MAX : natural := (512 - BOX_WIDTH);
+  constant BOX_X_MAX : natural := (1920 - BOX_WIDTH);
   constant BOX_Y_MAX : natural := (FRAME_HEIGHT - BOX_WIDTH);
 
   constant BOX_X_MIN : natural := 0;
-  constant BOX_Y_MIN : natural := 256;
+  constant BOX_Y_MIN : natural := 0;
 
   constant BOX_X_INIT : std_logic_vector(11 downto 0) := x"000";
   constant BOX_Y_INIT : std_logic_vector(11 downto 0) := x"190"; --400
@@ -74,13 +77,19 @@ architecture Behavioral of vga_ctrl is
   signal vga_green : std_logic_vector(3 downto 0);
   signal vga_blue  : std_logic_vector(3 downto 0);
 
-  signal box_x_reg    : std_logic_vector(11 downto 0) := BOX_X_INIT;
-  signal box_x_dir    : std_logic                     := '1';
-  signal box_y_reg    : std_logic_vector(11 downto 0) := BOX_Y_INIT;
-  signal box_y_dir    : std_logic                     := '1';
-  signal box_cntr_reg : std_logic_vector(24 downto 0) := (others => '0');
+  signal box_x_reg      : std_logic_vector(11 downto 0) := BOX_X_INIT;
+  signal box_x_dir      : std_logic                     := '1';
+  signal box_y_reg      : std_logic_vector(11 downto 0) := BOX_Y_INIT;
+  signal box_y_dir      : std_logic                     := '1';
+  signal box_cntr_reg   : std_logic_vector(24 downto 0) := (others => '0');
+  signal image_x_reg    : std_logic_vector(11 downto 0) := x"3B2";
+  signal image_y_reg    : std_logic_vector(11 downto 0) := x"20E";
+  -- signal image_x_dir    : std_logic                     := '1';
+  -- signal image_y_dir    : std_logic                     := '1';
+  -- signal image_cntr_reg : std_logic_vector(24 downto 0) := (others => '0');
 
   signal update_box   : std_logic;
+  signal update_image : std_logic;
   signal pixel_in_box : std_logic;
   signal char_bitmap  : std_logic;
 
@@ -144,6 +153,8 @@ architecture Behavioral of vga_ctrl is
   "0000000000000000000000000000",
   "0000000000000000000000000000",
   "0000000000000000000000000000");
+
+  signal image_point : std_logic;
 
 begin
   clk_div_inst : clk_wiz_0
@@ -402,17 +413,30 @@ begin
           end if;
 
         when "1011" =>
-          -- show moving ball
+          -- Display image
           if char_bitmap = '1' then
-            vga_red <= (others => '1');
+            case btn is
+              when "0000"        =>
+                vga_red <= (others => '1');
+              when "0001"        =>
+                vga_red <= h_cntr_reg(3 downto 0);
+              when "0010" =>
+                vga_red <= h_cntr_reg(4 downto 1);
+              when "0100" =>
+                vga_red <= h_cntr_reg(5 downto 2);
+              when "1000" =>
+                vga_red <= h_cntr_reg(6 downto 3);
+                --vga_red <= h_cntr_reg(11 downto 8);
+              when others        =>
+                vga_red <= (others => '0');
+            end case;
           else
             vga_red <= (others => '0');
           end if;
 
-        when others          =>
-          vga_red   <= (others => '0');
-          vga_green <= (others => '0');
-          vga_blue  <= (others => '0');
+        when others        =>
+          vga_red <= (others => '0');
+
       end case;
     else
       vga_red   <= (others => '0');
@@ -536,6 +560,63 @@ begin
 
   pixel_in_box <= ball_point when (((h_cntr_reg >= box_x_reg) and (h_cntr_reg < (box_x_reg + BOX_WIDTH))) and
     ((v_cntr_reg >= box_y_reg) and (v_cntr_reg < (box_y_reg + BOX_WIDTH)))) else
+    '0';
+
+  ------------------------------------------------------
+  -------        DISPLAY IMAGE LOGIC              ------
+  ------------------------------------------------------
+  -- process (pxl_clk)
+  -- begin
+  --   if (rising_edge(pxl_clk)) then
+  --     if (update_image = '1') then
+  --       if (image_x_dir = '1') then
+  --         image_x_reg <= image_x_reg;-- + 1;
+  --       else
+  --         image_x_reg <= image_x_reg;-- - 1;
+  --       end if;
+  --       if (image_y_dir = '1') then
+  --         image_y_reg <= image_y_reg;-- + 1;
+  --       else
+  --         image_y_reg <= image_y_reg;-- - 1;
+  --       end if;
+  --     end if;
+  --   end if;
+  -- end process;
+
+  -- process (pxl_clk)
+  -- begin
+  --   if (rising_edge(pxl_clk)) then
+  --     if (update_image = '1') then
+  --       if ((image_x_dir = '1' and (image_x_reg = BOX_X_MAX - 1)) or (image_x_dir = '0' and (image_x_reg = BOX_X_MIN + 1))) then
+  --         image_x_dir <= not(image_x_dir);
+  --       end if;
+  --       if ((image_y_dir = '1' and (image_y_reg = BOX_Y_MAX - 1)) or (image_y_dir = '0' and (image_y_reg = BOX_Y_MIN + 1))) then
+  --         image_y_dir <= not(image_y_dir);
+  --       end if;
+  --     end if;
+  --   end if;
+  -- end process;
+
+  -- process (pxl_clk)
+  -- begin
+  --   if (rising_edge(pxl_clk)) then
+  --     if (image_cntr_reg = (BOX_CLK_DIV - 1)) then
+  --       image_cntr_reg <= (others => '0');
+  --     else
+  --       image_cntr_reg <= image_cntr_reg + 1;
+  --     end if;
+  --   end if;
+  -- end process;
+
+  -- update_image <= '1' when image_cntr_reg = (BOX_CLK_DIV - 1) else
+  --   '0';
+
+  image_point <= img(conv_integer(v_cntr_reg(4 downto 0) - image_y_reg))(conv_integer(h_cntr_reg(4 downto 0) - image_x_reg)) when (((h_cntr_reg >= image_x_reg) and (h_cntr_reg < (image_x_reg + IMAGE_WIDTH))) and
+    ((v_cntr_reg >= image_y_reg) and (v_cntr_reg < (image_y_reg + IMAGE_WIDTH)))) else
+    '0';
+
+  char_bitmap <= image_point when (((h_cntr_reg >= image_x_reg) and (h_cntr_reg < (image_x_reg + IMAGE_WIDTH))) and
+    ((v_cntr_reg >= image_y_reg) and (v_cntr_reg < (image_y_reg + IMAGE_WIDTH)))) else
     '0';
 
   VGA_HS_O <= h_sync_dly_reg;
