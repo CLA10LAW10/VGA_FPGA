@@ -120,7 +120,7 @@ architecture Behavioral of vga_ctrl is
   "00000111111111100000"
   );
 
-  type rom_type_2 is array (0 to 27) of std_logic_vector(0 downto 27);
+  type rom_type_2 is array (0 to 27) of std_logic_vector(0 to 27);
   -- ROM definition os a character
   constant img : rom_type_2 :=
   (
