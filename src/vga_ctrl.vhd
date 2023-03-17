@@ -84,9 +84,6 @@ architecture Behavioral of vga_ctrl is
   signal box_cntr_reg   : std_logic_vector(24 downto 0) := (others => '0');
   signal image_x_reg    : std_logic_vector(11 downto 0) := x"3B2";
   signal image_y_reg    : std_logic_vector(11 downto 0) := x"20E";
-  -- signal image_x_dir    : std_logic                     := '1';
-  -- signal image_y_dir    : std_logic                     := '1';
-  -- signal image_cntr_reg : std_logic_vector(24 downto 0) := (others => '0');
 
   signal update_box   : std_logic;
   signal update_image : std_logic;
@@ -121,7 +118,7 @@ architecture Behavioral of vga_ctrl is
 
   signal ball_point : std_logic;
 
-  type rom_type_2 is array (0 to 27) of std_logic_vector(27 downto 0);
+  type rom_type_2 is array (0 to 27) of std_logic_vector(0 downto 27);
   -- ROM definition
   constant img : rom_type_2 :=
   (
@@ -565,51 +562,6 @@ begin
   ------------------------------------------------------
   -------        DISPLAY IMAGE LOGIC              ------
   ------------------------------------------------------
-  -- process (pxl_clk)
-  -- begin
-  --   if (rising_edge(pxl_clk)) then
-  --     if (update_image = '1') then
-  --       if (image_x_dir = '1') then
-  --         image_x_reg <= image_x_reg;-- + 1;
-  --       else
-  --         image_x_reg <= image_x_reg;-- - 1;
-  --       end if;
-  --       if (image_y_dir = '1') then
-  --         image_y_reg <= image_y_reg;-- + 1;
-  --       else
-  --         image_y_reg <= image_y_reg;-- - 1;
-  --       end if;
-  --     end if;
-  --   end if;
-  -- end process;
-
-  -- process (pxl_clk)
-  -- begin
-  --   if (rising_edge(pxl_clk)) then
-  --     if (update_image = '1') then
-  --       if ((image_x_dir = '1' and (image_x_reg = BOX_X_MAX - 1)) or (image_x_dir = '0' and (image_x_reg = BOX_X_MIN + 1))) then
-  --         image_x_dir <= not(image_x_dir);
-  --       end if;
-  --       if ((image_y_dir = '1' and (image_y_reg = BOX_Y_MAX - 1)) or (image_y_dir = '0' and (image_y_reg = BOX_Y_MIN + 1))) then
-  --         image_y_dir <= not(image_y_dir);
-  --       end if;
-  --     end if;
-  --   end if;
-  -- end process;
-
-  -- process (pxl_clk)
-  -- begin
-  --   if (rising_edge(pxl_clk)) then
-  --     if (image_cntr_reg = (BOX_CLK_DIV - 1)) then
-  --       image_cntr_reg <= (others => '0');
-  --     else
-  --       image_cntr_reg <= image_cntr_reg + 1;
-  --     end if;
-  --   end if;
-  -- end process;
-
-  -- update_image <= '1' when image_cntr_reg = (BOX_CLK_DIV - 1) else
-  --   '0';
 
   image_point <= img(conv_integer(v_cntr_reg(4 downto 0) - image_y_reg))(conv_integer(h_cntr_reg(4 downto 0) - image_x_reg)) when (((h_cntr_reg >= image_x_reg) and (h_cntr_reg < (image_x_reg + IMAGE_WIDTH))) and
     ((v_cntr_reg >= image_y_reg) and (v_cntr_reg < (image_y_reg + IMAGE_WIDTH)))) else
