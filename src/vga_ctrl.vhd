@@ -500,6 +500,8 @@ begin
       end if;
     end if;
   end process;
+
+  -- If in both the horizontal and vertical frame width, valid output
   active <= '1' when ((h_cntr_reg < FRAME_WIDTH) and (v_cntr_reg < FRAME_HEIGHT))else
     '0';
 
@@ -519,7 +521,7 @@ begin
   -------         MOVING BOX LOGIC                ------
   ------------------------------------------------------
 
-  -- Incromentally move the position of the printed ball up/down(y) and left/right(x).
+  -- incrementally move the position of the printed ball up/down(y) and left/right(x).
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
