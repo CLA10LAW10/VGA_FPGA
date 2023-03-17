@@ -42,8 +42,6 @@ architecture Behavioral of vga_ctrl is
   constant V_POL : std_logic := '1';
 
   --Moving Box constants
-
-  --Moving Box constants
   constant BOX_WIDTH   : natural := 20;
   constant IMAGE_WIDTH : natural := 28;
   constant BOX_CLK_DIV : natural := 1000000; --MAX=(2^25 - 1)
@@ -69,6 +67,7 @@ architecture Behavioral of vga_ctrl is
   signal h_sync_dly_reg : std_logic := not(H_POL);
   signal v_sync_dly_reg : std_logic := not(V_POL);
 
+  -- VGA Resisters utilized for pipelining and buffers
   signal vga_red_reg   : std_logic_vector(3 downto 0) := (others => '0');
   signal vga_green_reg : std_logic_vector(3 downto 0) := (others => '0');
   signal vga_blue_reg  : std_logic_vector(3 downto 0) := (others => '0');
@@ -77,21 +76,26 @@ architecture Behavioral of vga_ctrl is
   signal vga_green : std_logic_vector(3 downto 0);
   signal vga_blue  : std_logic_vector(3 downto 0);
 
-  signal box_x_reg      : std_logic_vector(11 downto 0) := BOX_X_INIT;
-  signal box_x_dir      : std_logic                     := '1';
-  signal box_y_reg      : std_logic_vector(11 downto 0) := BOX_Y_INIT;
-  signal box_y_dir      : std_logic                     := '1';
-  signal box_cntr_reg   : std_logic_vector(24 downto 0) := (others => '0');
-  signal image_x_reg    : std_logic_vector(11 downto 0) := x"3B2";
-  signal image_y_reg    : std_logic_vector(11 downto 0) := x"20E";
+  --Moving Box Signals
+  signal box_x_reg    : std_logic_vector(11 downto 0) := BOX_X_INIT;
+  signal box_x_dir    : std_logic                     := '1';
+  signal box_y_reg    : std_logic_vector(11 downto 0) := BOX_Y_INIT;
+  signal box_y_dir    : std_logic                     := '1';
+  signal box_cntr_reg : std_logic_vector(24 downto 0) := (others => '0');
 
   signal update_box   : std_logic;
   signal update_image : std_logic;
   signal pixel_in_box : std_logic;
-  signal char_bitmap  : std_logic;
+  signal ball_point   : std_logic;
+
+  --Cenetered Image Signals
+  signal image_x_reg : std_logic_vector(11 downto 0) := x"3B2";
+  signal image_y_reg : std_logic_vector(11 downto 0) := x"20E";
+  signal char_bitmap : std_logic;
+  signal image_point : std_logic;
 
   type rom_type is array (0 to 19) of std_logic_vector(19 downto 0);
-  -- ROM definition
+  -- ROM definition of a ball
   constant BALL_ROM : rom_type :=
   (
   "00000111111111100000",
@@ -116,10 +120,8 @@ architecture Behavioral of vga_ctrl is
   "00000111111111100000"
   );
 
-  signal ball_point : std_logic;
-
   type rom_type_2 is array (0 to 27) of std_logic_vector(0 downto 27);
-  -- ROM definition
+  -- ROM definition os a character
   constant img : rom_type_2 :=
   (
   "0000000000000000000000000000",
@@ -151,9 +153,9 @@ architecture Behavioral of vga_ctrl is
   "0000000000000000000000000000",
   "0000000000000000000000000000");
 
-  signal image_point : std_logic;
-
 begin
+
+  -- Instantiate Clock IP
   clk_div_inst : clk_wiz_0
   port map
   (-- Clock in ports
@@ -168,22 +170,26 @@ begin
   begin
     if active = '1'then
       case sw is
+
         when "0000" =>
           --Monitor off
           vga_red   <= (others => '0');
           vga_green <= (others => '0');
           vga_blue  <= (others => '0');
-        when "0001"          =>
+
+        when "0001" =>
           --Show solid red
           vga_red   <= (others => '1');
           vga_green <= (others => '0');
           vga_blue  <= (others => '0');
-        when "0010"          =>
+
+        when "0010" =>
           --Show solid green
           vga_red   <= (others => '0');
           vga_green <= (others => '1');
           vga_blue  <= (others => '0');
-        when "0011"          => -- Possibly 0100
+
+        when "0011" =>
           --Divide the screen into 3 regions and show RGB
           if (h_cntr_reg >= 0 and h_cntr_reg < 640) then
             vga_red   <= (others => '1');
@@ -202,6 +208,7 @@ begin
             vga_green <= (others => '0');
             vga_blue  <= (others => '0');
           end if;
+
         when "0100" =>
           -- Divide Monitor to 8 regions and show white, yellow, cyan, green, magenta, red, blue, and black
           if (h_cntr_reg >= 0 and h_cntr_reg < 240) then
@@ -249,6 +256,7 @@ begin
             vga_green <= (others => '0');
             vga_blue  <= (others => '0');
           end if;
+
         when "0101" =>
           -- divide the monitor into 8 sections and show 8 shades of gray
           if (h_cntr_reg >= 0 and h_cntr_reg < 240) then
@@ -290,6 +298,7 @@ begin
             vga_green <= (others => '0');
             vga_blue  <= (others => '0');
           end if;
+
         when "0110" =>
           case btn is
             when "0000" =>
@@ -317,6 +326,7 @@ begin
               vga_green <= (others => '0');
               vga_blue  <= (others => '0');
           end case;
+
         when "0111" =>
           case btn is
             when "0000" =>
@@ -373,6 +383,7 @@ begin
               vga_green <= (others => '0');
               vga_blue  <= (others => '0');
           end case;
+
         when "1001" =>
           -- create checkerboard with inner repeat pattern
           case btn is
@@ -401,6 +412,7 @@ begin
               vga_green <= (others => '0');
               vga_blue  <= (others => '0');
           end case;
+
         when "1010" =>
           -- show moving ball
           if pixel_in_box = '1' then
@@ -412,30 +424,18 @@ begin
         when "1011" =>
           -- Display image
           if char_bitmap = '1' then
-            case btn is
-              when "0000"        =>
-                vga_red <= (others => '1');
-              when "0001"        =>
-                vga_red <= h_cntr_reg(3 downto 0);
-              when "0010" =>
-                vga_red <= h_cntr_reg(4 downto 1);
-              when "0100" =>
-                vga_red <= h_cntr_reg(5 downto 2);
-              when "1000" =>
-                vga_red <= h_cntr_reg(6 downto 3);
-                --vga_red <= h_cntr_reg(11 downto 8);
-              when others        =>
-                vga_red <= (others => '0');
-            end case;
+            vga_red <= (others => '1');
           else
             vga_red <= (others => '0');
           end if;
-
-        when others        =>
-          vga_red <= (others => '0');
-
+        when others =>
+          -- Default is to keep the display black
+          vga_red   <= (others => '0');
+          vga_green <= (others => '0');
+          vga_blue  <= (others => '0');
       end case;
     else
+      -- Default is to keep the display black
       vga_red   <= (others => '0');
       vga_green <= (others => '0');
       vga_blue  <= (others => '0');
@@ -446,6 +446,9 @@ begin
   -------         SYNC GENERATION                 ------
   ------------------------------------------------------
 
+  -- Horizontal control register
+  -- When the horizontal value is at max, reset calues and continue incrementing. Far right of the display
+  -- Horizontal will reset at every end of right display
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
@@ -457,6 +460,10 @@ begin
     end if;
   end process;
 
+  -- Vertical control register
+  -- When the vertical value is at max, reset calues and continue incrementing. Bottom of the display
+  -- Vertical will only reset is the horizontal is at the end of the display
+  -- Vertical will continue moving down, controlled by the horizontal
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
@@ -468,6 +475,7 @@ begin
     end if;
   end process;
 
+  -- Within horizontal display area
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
@@ -478,6 +486,8 @@ begin
       end if;
     end if;
   end process;
+
+  -- Within vertical display area
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
@@ -491,6 +501,7 @@ begin
   active <= '1' when ((h_cntr_reg < FRAME_WIDTH) and (v_cntr_reg < FRAME_HEIGHT))else
     '0';
 
+  -- Buffer the outputs
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
@@ -505,6 +516,8 @@ begin
   ------------------------------------------------------
   -------         MOVING BOX LOGIC                ------
   ------------------------------------------------------
+
+  -- Incromentally move the position of the printed ball up/down(y) and left/right(x).
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
@@ -523,6 +536,7 @@ begin
     end if;
   end process;
 
+  -- Change the direction flag of the moving ball
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
@@ -537,6 +551,7 @@ begin
     end if;
   end process;
 
+  -- Controls of when to be update the box
   process (pxl_clk)
   begin
     if (rising_edge(pxl_clk)) then
@@ -548,13 +563,16 @@ begin
     end if;
   end process;
 
+  -- Box needs to be updated
   update_box <= '1' when box_cntr_reg = (BOX_CLK_DIV - 1) else
     '0';
 
+  -- Pull value from the ROM to Print
   ball_point <= BALL_ROM(conv_integer(v_cntr_reg(4 downto 0) - box_y_reg))(conv_integer(h_cntr_reg(4 downto 0) - box_x_reg)) when (((h_cntr_reg >= box_x_reg) and (h_cntr_reg < (box_x_reg + BOX_WIDTH))) and
     ((v_cntr_reg >= box_y_reg) and (v_cntr_reg < (box_y_reg + BOX_WIDTH)))) else
     '0';
 
+  -- If you are in range of the display, print the ball
   pixel_in_box <= ball_point when (((h_cntr_reg >= box_x_reg) and (h_cntr_reg < (box_x_reg + BOX_WIDTH))) and
     ((v_cntr_reg >= box_y_reg) and (v_cntr_reg < (box_y_reg + BOX_WIDTH)))) else
     '0';
@@ -563,14 +581,17 @@ begin
   -------        DISPLAY IMAGE LOGIC              ------
   ------------------------------------------------------
 
+  -- Pull value from the ROM to Print
   image_point <= img(conv_integer(v_cntr_reg(4 downto 0) - image_y_reg))(conv_integer(h_cntr_reg(4 downto 0) - image_x_reg)) when (((h_cntr_reg >= image_x_reg) and (h_cntr_reg < (image_x_reg + IMAGE_WIDTH))) and
     ((v_cntr_reg >= image_y_reg) and (v_cntr_reg < (image_y_reg + IMAGE_WIDTH)))) else
     '0';
 
+  -- If you are in range of the display, print the image
   char_bitmap <= image_point when (((h_cntr_reg >= image_x_reg) and (h_cntr_reg < (image_x_reg + IMAGE_WIDTH))) and
     ((v_cntr_reg >= image_y_reg) and (v_cntr_reg < (image_y_reg + IMAGE_WIDTH)))) else
     '0';
 
+  -- Assign the buffered output to the module output
   VGA_HS_O <= h_sync_dly_reg;
   VGA_VS_O <= v_sync_dly_reg;
   VGA_R    <= vga_red_reg;
