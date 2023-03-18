@@ -300,6 +300,7 @@ begin
           end if;
 
         when "0110" =>
+          -- Display vertical bars of shades of grey, use the buttons to enlarge the size
           case btn is
             when "0000" =>
               vga_red   <= h_cntr_reg(3 downto 0);
@@ -328,6 +329,7 @@ begin
           end case;
 
         when "0111" =>
+          -- Display howizontal bars of shades of grey, use the buttons to enlarge the size
           case btn is
             when "0000" =>
               vga_red   <= v_cntr_reg(3 downto 0);
